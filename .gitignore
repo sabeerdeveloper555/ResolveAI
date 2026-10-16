@@ -1,0 +1,19 @@
+﻿node_modules/
+dist/
+build/
+coverage/
+.env
+.env.*
+!.env.example
+!.env.*.example
+!.env.example.*
+!.env.*.example.*
+!.env.local.example
+!.env.development.example
+!.env.production.example
+!.env.test.example
+*.log
+.DS_Store
+Thumbs.db
+# Supabase SSL certificate
+server/supabase-ca-2021.crt
