@@ -1,37 +1,50 @@
 require('dotenv').config();
 
-const fs = require('node:fs');
-const path = require('node:path');
-const { Client } = require('pg');
+const express = require('express');
+const cors = require('cors');
 
-async function testDatabaseConnection() {
-  const caPath = path.join(__dirname, 'supabase-ca-2021.crt');
+// The pool reads DATABASE_URL and the SSL certificate from db.js.
+// dotenv.config() above has already run, so env vars are loaded first.
+const pool = require('./db');
 
-  const client = new Client({
-    connectionString: process.env.DATABASE_URL,
-    connectionTimeoutMillis: 10000,
-    ssl: {
-      ca: fs.readFileSync(caPath, 'utf8'),
-      rejectUnauthorized: true,
-    },
-  });
+const app = express();
+const PORT = process.env.PORT || 5000;
 
+app.use(express.json());
+app.use(cors({ origin: 'http://localhost:5173' }));
+
+// Basic API health check.
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', service: 'ResolveAI API' });
+});
+
+// Database health check.
+app.get('/api/health/db', async (req, res) => {
   try {
-    await client.connect();
-
-    const result = await client.query(
+    const result = await pool.query(
       'SELECT NOW() AS current_time, current_database() AS database_name',
     );
 
-    console.log('Supabase database connected successfully!');
-    console.log('Database:', result.rows[0].database_name);
-    console.log('Server time:', result.rows[0].current_time);
+    res.status(200).json({
+      status: 'ok',
+      database: result.rows[0].database_name,
+      serverTime: result.rows[0].current_time,
+    });
   } catch (error) {
-    console.error('Database connection failed:', error.message);
-    process.exitCode = 1;
-  } finally {
-    await client.end().catch(() => {});
-  }
-}
+    // Keep details in the server log only: no query string, credentials or
+    // connection URL in the response.
+    console.error('Database health check failed:', {
+      code: error.code || error.name || 'unknown error',
+      message: error.message,
+    });
 
-testDatabaseConnection();
+    res.status(503).json({
+      status: 'error',
+      message: 'Database connection unavailable',
+    });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`ResolveAI API listening on http://localhost:${PORT}`);
+});

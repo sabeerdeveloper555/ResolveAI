@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ApiHealthCard from '@/components/ApiHealthCard';
 import {
   Activity,
   ArrowDownRight,
@@ -655,6 +656,8 @@ function App() {
                   </div>
                 </div>
               </div>
+
+              <ApiHealthCard />
             </div>
           </section>
 
