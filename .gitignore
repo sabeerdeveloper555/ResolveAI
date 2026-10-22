@@ -17,3 +17,6 @@ coverage/
 Thumbs.db
 # Supabase SSL certificate
 server/supabase-ca-2021.crt
+
+# Runtime verification screenshots
+docs/*.png
