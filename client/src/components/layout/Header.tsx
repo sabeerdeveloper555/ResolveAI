@@ -1,6 +1,8 @@
-import { Menu, Plus } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Menu, Plus, LogOut } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCurrentPage } from '@/hooks/useCurrentPage';
+import { useAuth } from '@/contexts/auth-context';
 
 interface HeaderProps {
   menuOpen: boolean;
@@ -9,6 +11,26 @@ interface HeaderProps {
 
 function Header({ menuOpen, onOpenMenu }: HeaderProps) {
   const page = useCurrentPage();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [signingOut, setSigningOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
+
+    const { error } = await logout();
+    setSigningOut(false);
+
+    // RequireAuth redirects to /login once the auth state clears; push
+    // explicitly too so the user never stays on a protected page.
+    if (!error) {
+      navigate('/login', { replace: true });
+    }
+  };
+
+  // Email is non-secret identity display data, safe to render.
+  const userEmail = user?.email ?? '';
 
   return (
     <header className="sticky top-0 z-30 flex h-[76px] items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-7 lg:px-9">
@@ -30,13 +52,36 @@ function Header({ menuOpen, onOpenMenu }: HeaderProps) {
         </div>
       </div>
 
-      <Link
-        to="/workflows/new"
-        className="hidden items-center gap-2 rounded-lg bg-slate-900 px-3.5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400 sm:flex"
-      >
-        <Plus size={17} />
-        New workflow
-      </Link>
+      <div className="flex min-w-0 items-center gap-2">
+        {userEmail && (
+          <span
+            className="hidden max-w-[220px] truncate text-xs text-slate-500 sm:block"
+            title={userEmail}
+          >
+            {userEmail}
+          </span>
+        )}
+
+        <Link
+          to="/workflows/new"
+          className="hidden items-center gap-2 rounded-lg bg-slate-900 px-3.5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400 sm:flex"
+        >
+          <Plus size={17} />
+          New workflow
+        </Link>
+
+        <button
+          onClick={handleLogout}
+          disabled={signingOut}
+          aria-label="Sign out"
+          className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <LogOut size={16} />
+          <span className="hidden sm:inline">
+            {signingOut ? 'Signing out…' : 'Sign out'}
+          </span>
+        </button>
+      </div>
     </header>
   );
 }
